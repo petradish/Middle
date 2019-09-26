@@ -15,8 +15,8 @@ export default class MapScreen extends Component {
     super();
     this.state = {
       error: '',
-      latitude: 0,
-      longitude: 0,
+      latitude: 40.6866676,
+      longitude: -73.9836081,
       destination: '',
       pointCoords: [],
       predictions: []
@@ -34,8 +34,8 @@ export default class MapScreen extends Component {
           longitude: position.coords.longitude
         });
       },
-      error => console.error(error), {enableHighAccuracy: true, maximumAge: 2000, timeout: 20000}
-    );
+      error => alert(`${error.message} You have been redirected to Barclays Center!`), {enableHighAccuracy: false, maximumAge: 1000, timeout: 20000}
+    )
   }
   async getRouteDirections(destinationPlaceId, destinationName) {
     try {
@@ -84,7 +84,7 @@ export default class MapScreen extends Component {
     let marker = null;
     if (this.state.pointCoords.length > 1){
       marker = (
-        <Marker coordinate={this.state.pointCoords[this.state.pointCoords.length-1]} />
+        <Marker color='tomato' coordinate={this.state.pointCoords[this.state.pointCoords.length-1]} />
       )
     }
     const predictions = this.state.predictions.map(prediction => (
@@ -111,6 +111,7 @@ export default class MapScreen extends Component {
           this.map = map;
         }}
         style={styles.map}
+        customMapStyle={mapStyle}
         region={{
           latitude: this.state.latitude,
           longitude: this.state.longitude,
@@ -122,7 +123,7 @@ export default class MapScreen extends Component {
         <Polyline
           coordinates={this.state.pointCoords}
           strokeWidth={4}
-          strokeColor="red"
+          strokeColor="plum"
         />
         {marker}
       </MapView>

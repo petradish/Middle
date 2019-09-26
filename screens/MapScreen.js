@@ -34,7 +34,7 @@ export default class MapScreen extends Component {
           longitude: position.coords.longitude
         });
       },
-      error => alert(`${error.message} You have been redirected to Barclays Center!`), {enableHighAccuracy: false, maximumAge: 1000, timeout: 20000}
+      error => alert(`${error.message} You're now in Brooklyn, the best!`), {enableHighAccuracy: false, maximumAge: 1000, timeout: 20000}
     )
   }
   async getRouteDirections(destinationPlaceId, destinationName) {

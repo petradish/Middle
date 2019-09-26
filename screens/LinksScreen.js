@@ -2,10 +2,60 @@ import React, {Component} from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
+import Geojson from 'react-native-geojson'
+import {GOOGLE_MAPS_APIKEY} from '../secrets'
+import {subwayLine} from '../constants/subwayLine'
 
-const origin = {latitude: 37.3318456, longitude: -122.0296002};
-const destination = {latitude: 37.771707, longitude: -122.4053769};
-// const GOOGLE_MAPS_APIKEY = 
+// const origin = {latitude: 37.3318456, longitude: -122.0296002};
+// const destination = {latitude: 37.771707, longitude: -122.4053769};
+
+export default class LinksScreen extends Component {
+  constructor(){
+    super();
+    this.state = {
+      initialRegion: {
+        longitude: -73.9091,
+        latitude: 40.7305,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      }
+    };
+    this.onRegionChange = this.onRegionChange.bind(this)
+    this.getInitialState = this.getInitialState.bind(this)
+  }
+  getInitialState() {
+    return {
+      initialRegion: {
+        longitude: -73.9091,
+        latitude: 40.7305,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      },
+    };
+  }
+  onRegionChange(region) {
+    this.setState({ region });
+  }
+  render() {
+    return (
+      <View style={styles.container}>
+      <MapView
+        style={styles.map}
+        initialRegion={this.state.initialRegion}
+        onRegionChange={this.onRegionChange}
+        customMapStyle={mapStyle}
+        minZoomLevel={10} >
+        <Geojson geojson={subwayLine} />
+        </MapView>
+      </View>
+
+    );
+  }
+}
+LinksScreen.navigationOptions = {
+  title: 'Meet',
+};
+
 const mapStyle = [
   {
     "elementType": "geometry",
@@ -154,6 +204,15 @@ const mapStyle = [
     ]
   },
   {
+    "featureType": "transit",
+    "elementType": "labels.icon",
+    "stylers": [
+      {
+        "visibility": "on"
+      }
+    ]
+  },
+  {
     "featureType": "transit.line",
     "elementType": "geometry",
     "stylers": [
@@ -167,13 +226,37 @@ const mapStyle = [
     "elementType": "geometry.fill",
     "stylers": [
       {
-        "color": "#d783ff"
-      },
+        "visibility": "on"
+      }
+    ]
+  },
+  {
+    "featureType": "transit.line",
+    "elementType": "labels",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "featureType": "transit.line",
+    "elementType": "labels.icon",
+    "stylers": [
       {
         "visibility": "on"
       },
       {
-        "weight": 2
+        "weight": 1
+      }
+    ]
+  },
+  {
+    "featureType": "transit.line",
+    "elementType": "labels.text",
+    "stylers": [
+      {
+        "visibility": "on"
       }
     ]
   },
@@ -182,10 +265,16 @@ const mapStyle = [
     "elementType": "labels.text.fill",
     "stylers": [
       {
-        "color": "#b86eff"
-      },
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "featureType": "transit.line",
+    "elementType": "labels.text.stroke",
+    "stylers": [
       {
-        "weight": 2.5
+        "visibility": "off"
       }
     ]
   },
@@ -199,14 +288,11 @@ const mapStyle = [
     ]
   },
   {
-    "featureType": "transit.station.rail",
+    "featureType": "transit.station",
     "elementType": "labels.icon",
     "stylers": [
       {
         "visibility": "on"
-      },
-      {
-        "weight": 2.5
       }
     ]
   },
@@ -231,15 +317,6 @@ const mapStyle = [
     "stylers": [
       {
         "visibility": "off"
-      }
-    ]
-  },
-  {
-    "featureType": "transit.station.rail",
-    "elementType": "labels.text.stroke",
-    "stylers": [
-      {
-        "visibility": "on"
       }
     ]
   },
@@ -269,51 +346,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   map: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1
   },
 });
-
-export default class LinksScreen extends Component {
-  constructor(){
-    super();
-    this.state = {
-      region: {
-        longitude: -74.009,
-        latitude: 40.705,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      }
-    };
-    this.onRegionChange = this.onRegionChange.bind(this)
-    this.getInitialState = this.getInitialState.bind(this)
-  }
-  getInitialState() {
-    return {
-      region: {
-        longitude: -74.009,
-        latitude: 40.705,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      },
-    };
-  }
-  onRegionChange(region) {
-    this.setState({ region });
-  }
-  render() {
-    return (
-      <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        region={this.state.region}
-        onRegionChange={this.onRegionChange}
-        customMapStyle={mapStyle} />
-      </View>
-
-    );
-  }
-}
-
-LinksScreen.navigationOptions = {
-  title: 'Meet',
-};

@@ -2,12 +2,11 @@ import React, {Component} from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
-import Geojson from 'react-native-geojson'
-import {GOOGLE_MAPS_APIKEY} from '../secrets'
-import {subwayLine} from '../constants/subwayLine'
+import {GOOGLE_MAPS_APIKEY} from '../secrets';
 
-// const origin = {latitude: 37.3318456, longitude: -122.0296002};
-// const destination = {latitude: 37.771707, longitude: -122.4053769};
+
+const origin = {latitude: 40.7305, longitude: -73.9091};
+const destination = {latitude: 40.705, longitude: -74.009};
 
 export default class LinksScreen extends Component {
   constructor(){
@@ -45,15 +44,22 @@ export default class LinksScreen extends Component {
         onRegionChange={this.onRegionChange}
         customMapStyle={mapStyle}
         minZoomLevel={10} >
-        <Geojson geojson={subwayLine} />
-        </MapView>
+          <MapViewDirections 
+          origin={origin}
+          destination={destination}
+          mode="TRANSIT"
+          optimizeWaypoints={true}
+          strokeWidth={2}
+          strokeColor="purple"
+          apikey={GOOGLE_MAPS_APIKEY} />
+      </MapView>
       </View>
 
     );
   }
 }
 LinksScreen.navigationOptions = {
-  title: 'Meet',
+  title: 'Meet Me in the Middle!',
 };
 
 const mapStyle = [

@@ -10,15 +10,15 @@ import _ from 'lodash'
 // const origin = {latitude: 40.7305, longitude: -73.9091};
 // const destination = {latitude: 40.705, longitude: -74.009};
 
-export default class MapScreen extends Component {
+export default class HomeScreen extends Component {
   constructor(){
     super();
     this.state = {
       error: '',
       latitude: 40.6866676,
       longitude: -73.9836081,
-      destination: '',
-      pointCoords: [],
+      friend: '',
+      friendCoords: {},
       predictions: []
     };
     this.onChangeDestinationDebounced = _.debounce(
@@ -37,35 +37,43 @@ export default class MapScreen extends Component {
       error => alert(`${error.message} You're now in Brooklyn, the best!`), {enableHighAccuracy: false, maximumAge: 1000, timeout: 20000}
     )
   }
-  async getRouteDirections(destinationPlaceId, destinationName) {
+  async getTravelDuration(friendPlaceId, friendPlaceName) {
     try {
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/directions/json?&mode=transit&origin=${
+        `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${
           this.state.latitude
         },${
           this.state.longitude
-        }&destination=place_id:${destinationPlaceId}&departure_time=now&transit_mode=subway&key=${apiKey}`
+        }|place_id:${friendPlaceId}&destinations=${
+          this.state.latitude
+        },${
+          this.state.longitude
+        }|place_id:${friendPlaceId}&mode=transit&transit_mode=subway&departure_time=now&key=${apiKey}`
       );
       const json = await response.json();
-      console.log(json);
-      const points = PolyLine.decode(json.routes[0].overview_polyline.points);
-      const pointCoords = points.map(point => {
-        return { latitude: point[0], longitude: point[1] };
-      });
+      // console.log(json);
+      const friendDetails = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?placeid=${friendPlaceId}&key=${apiKey}`);
+      const jsonFriend = await friendDetails.json()
+      // const points = PolyLine.decode(json.routes[0].overview_polyline.points);
+      const friendCoords = {latitude: jsonFriend.result.geometry.location.lat, longitude: jsonFriend.result.geometry.location.lng }
+      console.log(friendCoords)
       this.setState({
-        pointCoords,
+        friendCoords,
         predictions: [],
-        destination: destinationName
+        friend: friendPlaceName
       });
       Keyboard.dismiss();
-      this.map.fitToCoordinates(pointCoords);
+      this.map.fitToCoordinates([{
+        latitude: this.state.latitude,
+        longitude: this.state.longitude
+      }, friendCoords], { edgePadding: edgePadding});
     } catch (error) {
       console.error(error);
     }
   }
-  async onChangeDestination(destination) {
+  async onChangeDestination(friend) {
     const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?key=${apiKey}
-    &input=${destination}&location=${this.state.latitude},${
+    &input=${friend}&location=${this.state.latitude},${
       this.state.longitude
     }&radius=2000`;
     console.log(apiUrl);
@@ -81,16 +89,23 @@ export default class MapScreen extends Component {
     }
   }
   render() {
+    // let originMarker = null;
+    // if (this.state.longitude){
+    //   originMarker = (
+    //     <Marker color='tomato' coordinate={{longitude: this.state.longitude, latitude: this.state.latitude}} />
+    //   )
+    
     let marker = null;
-    if (this.state.pointCoords.length > 1){
+
+    if (this.state.friendCoords.latitude){
       marker = (
-        <Marker color='tomato' coordinate={this.state.pointCoords[this.state.pointCoords.length-1]} />
-      )
-    }
-    const predictions = this.state.predictions.map(prediction => (
+        <Marker color='tomato' coordinate={this.state.friendCoords} />
+      )}
+  
+      const predictions = this.state.predictions.map(prediction => (
       <TouchableHighlight
         onPress={() =>
-          this.getRouteDirections(
+          this.getTravelDuration(
             prediction.place_id,
             prediction.structured_formatting.main_text
           )
@@ -120,22 +135,23 @@ export default class MapScreen extends Component {
         }}
         showsUserLocation={true}
       >
-        <Polyline
-          coordinates={this.state.pointCoords}
+        {/* <Polyline
+          coordinates={this.state.friendCoords}
           strokeWidth={4}
           strokeColor="plum"
-        />
+        /> */}
+    <Marker color='tomato' title='Me' coordinate={{longitude: this.state.longitude, latitude: this.state.latitude}} /> 
         {marker}
       </MapView>
       <TextInput
         placeholder="A fair friend is no fair-weather friend...meet in the middle!"
         style={styles.destinationInput}
-        value={this.state.destination}
+        value={this.state.friend}
         clearButtonMode="always"
-        onChangeText={destination => {
-          console.log(destination);
-          this.setState({ destination });
-          this.onChangeDestinationDebounced(destination);
+        onChangeText={friend => {
+          console.log(friend);
+          this.setState({ friend });
+          this.onChangeDestinationDebounced(friend);
         }}
       />
       {predictions}
@@ -144,7 +160,7 @@ export default class MapScreen extends Component {
   }
 }
 
-MapScreen.navigationOptions = {
+HomeScreen.navigationOptions = {
   title: `You are here! Where's your buddy?`,
 };
 
@@ -431,6 +447,12 @@ const mapStyle = [
     ]
   }
 ]
+const edgePadding = {
+  top: 50,
+  right: 50,
+  bottom: 50,
+  left: 50
+}
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject

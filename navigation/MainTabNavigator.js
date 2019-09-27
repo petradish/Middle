@@ -4,8 +4,8 @@ import { createStackNavigator, createBottomTabNavigator } from 'react-navigation
 
 import TabBarIcon from '../components/TabBarIcon';
 import HomeScreen from '../screens/HomeScreen';
-import LinksScreen from '../screens/LinksScreen';
-import SettingsScreen from '../screens/SettingsScreen';
+import MapScreen from '../screens/MapScreen';
+import DirectionScreen from '../screens/DirectionScreen';
 
 const config = Platform.select({
   web: { headerMode: 'screen' },
@@ -20,57 +20,53 @@ const HomeStack = createStackNavigator(
 );
 
 HomeStack.navigationOptions = {
-  tabBarLabel: 'Profile',
+  tabBarLabel: 'Me',
   tabBarIcon: ({ focused }) => (
     <TabBarIcon
       focused={focused}
-      name={
-        Platform.OS === 'ios'
-          ? `ios-information-circle${focused ? '' : '-outline'}`
-          : 'md-information-circle'
-      }
+      name='user'
     />
   ),
 };
 
 HomeStack.path = '';
 
-const LinksStack = createStackNavigator(
+const MapStack = createStackNavigator(
   {
-    Links: LinksScreen,
+    Map: MapScreen,
   },
   config
 );
 
-LinksStack.navigationOptions = {
+MapStack.navigationOptions = {
   tabBarLabel: 'Meet',
   tabBarIcon: ({ focused }) => (
-    <TabBarIcon focused={focused} name={Platform.OS === 'ios' ? 'ios-link' : 'md-link'} />
+    <TabBarIcon focused={focused} name='team' />
   ),
 };
 
-LinksStack.path = '';
+MapStack.path = '';
 
-const SettingsStack = createStackNavigator(
+const DirectionStack = createStackNavigator(
   {
-    Settings: SettingsScreen,
+    Directions: DirectionScreen,
   },
   config
 );
 
-SettingsStack.navigationOptions = {
-  tabBarLabel: 'Settings',
+DirectionStack.navigationOptions = {
+  tabBarLabel: 'Me -> Meet -> ETA',
   tabBarIcon: ({ focused }) => (
-    <TabBarIcon focused={focused} name={Platform.OS === 'ios' ? 'ios-options' : 'md-options'} />
+    <TabBarIcon focused={focused} name='clockcircleo' />
   ),
 };
 
-SettingsStack.path = '';
+DirectionStack.path = '';
 
 const tabNavigator = createBottomTabNavigator({
   HomeStack,
-  LinksStack,
-  SettingsStack,
+  MapStack,
+  DirectionStack,
 });
 
 tabNavigator.path = '';

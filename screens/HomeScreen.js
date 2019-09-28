@@ -187,7 +187,7 @@ export default class HomeScreen extends Component {
             <Image style={{width: 50, height: 50}} source={{uri: this.state.placeInfo.icon}} />
               <Text> Meet up at: {this.state.placeInfo.name}</Text>
               <Text> Rating: {this.state.placeInfo.rating}</Text>
-              {this.state.travelTime.length > 1 ? <Text> Approx transit time: {this.state.travelTime}</Text> : <Text> Click on me to preview the route there</Text>}
+              <Text> Click on me to preview the route there</Text>
           </View>
         </Callout>
       </Marker>
@@ -232,6 +232,7 @@ export default class HomeScreen extends Component {
     <Marker pinColor='red' title='Me' coordinate={{longitude: this.state.longitude, latitude: this.state.latitude}} /> 
         {marker}
         {poiMarker}
+        
         <Polyline
           coordinates={this.state.pointCoordsToFriend}
           strokeWidth={5}
@@ -261,7 +262,7 @@ export default class HomeScreen extends Component {
       />
       {predictions}
       {this.state.duration !== '' ? <Text style={styles.suggestions}>{this.state.duration}</Text> : null}
-      
+      {this.state.travelTime.length > 1 ? <Text> Approx transit time: {this.state.travelTime}</Text> : null}
     </View>
   );
   }

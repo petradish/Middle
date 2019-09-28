@@ -22,6 +22,7 @@ export default class HomeScreen extends Component {
       friend: '',
       pointCoordsToFriend: [],
       pointCoordsToMe: [],
+      pointCoords: [],
       predictions: [],
       duration: '',
       placeInfo: {}
@@ -45,7 +46,30 @@ export default class HomeScreen extends Component {
     )
   }
 
-
+  async getRouteDirections(destinationPlaceId) {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/directions/json?&mode=transit&origin=${
+          this.state.latitude
+        },${
+          this.state.longitude
+        }&destination=place_id:${destinationPlaceId}&departure_time=now&transit_mode=subway&key=${apiKey}`
+      );
+      const json = await response.json();
+      console.log(json);
+      const points = PolyLine.decode(json.routes[0].overview_polyline.points);
+      const pointCoords = points.map(point => {
+        return { latitude: point[0], longitude: point[1] };
+      });
+      this.setState({
+        pointCoords
+      });
+      Keyboard.dismiss();
+      this.map.fitToCoordinates(pointCoords);
+    } catch (error) {
+      console.error(error);
+    }
+  }
   calculateDuration(me, friend){
     const secondsMe = me.routes[0].legs[0].duration.value
     const secondsFriend = friend.routes[0].legs[0].duration.value
@@ -126,7 +150,8 @@ export default class HomeScreen extends Component {
         price: json.result.price_level,
         rating: json.result.rating,
         url: json.result.url,
-        coordinate: event.coordinate
+        coordinate: event.coordinate,
+        id: event.placeId
       };
       this.setState({
         placeInfo,
@@ -152,7 +177,7 @@ export default class HomeScreen extends Component {
       poiMarker = (
       <Marker pinColor='green' coordinate={this.state.placeInfo.coordinate} calloutOffset={{ x: -8, y: 28 }}
       calloutAnchor={{ x: 0.5, y: 0.4 }}>
-      <Callout>
+      <Callout onPress={() => this.getRouteDirections(this.state.placeInfo.id)}>
       <View>
           <Image style={{width: 50, height: 50}} source={{uri: this.state.placeInfo.icon}} />
           <Text> Meet up at: {this.state.placeInfo.name}</Text>
@@ -212,7 +237,11 @@ export default class HomeScreen extends Component {
           strokeWidth={4}
           strokeColor="tomato"
         />
-        
+        <Polyline
+          coordinates={this.state.pointCoords}
+          strokeWidth={4}
+          strokeColor="green"
+        />
       </MapView>
       <TextInput
         placeholder="A fair friend is no fair-weather friend...meet in the middle!"

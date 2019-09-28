@@ -23,6 +23,7 @@ export default class HomeScreen extends Component {
       pointCoordsToFriend: [],
       pointCoordsToMe: [],
       pointCoords: [],
+      travelTime: '',
       predictions: [],
       duration: '',
       placeInfo: {}
@@ -56,12 +57,13 @@ export default class HomeScreen extends Component {
         }&destination=place_id:${destinationPlaceId}&departure_time=now&transit_mode=subway&key=${apiKey}`
       );
       const json = await response.json();
-      console.log(json);
+      const travelTime = json.routes[0].legs[0].duration.text
       const points = PolyLine.decode(json.routes[0].overview_polyline.points);
       const pointCoords = points.map(point => {
         return { latitude: point[0], longitude: point[1] };
       });
       this.setState({
+        travelTime,
         pointCoords
       });
       Keyboard.dismiss();
@@ -178,12 +180,18 @@ export default class HomeScreen extends Component {
       <Marker pinColor='green' coordinate={this.state.placeInfo.coordinate} calloutOffset={{ x: -8, y: 28 }}
       calloutAnchor={{ x: 0.5, y: 0.4 }}>
       <Callout onPress={() => this.getRouteDirections(this.state.placeInfo.id)}>
-      <View>
+      {this.state.pointCoords.length < 1 ? 
+        (<View>
           <Image style={{width: 50, height: 50}} source={{uri: this.state.placeInfo.icon}} />
           <Text> Meet up at: {this.state.placeInfo.name}</Text>
-          <Text> Navigate there: {this.state.placeInfo.url}</Text>
+          <Text> Click on me to preview the route there</Text>
           <Text>Rating: {this.state.placeInfo.rating}</Text> 
-      </View>
+      </View>)
+      :  (<View>
+        <Text> Approx transit time: {this.state.travelTime}</Text>
+        <Text> Navigate there: {this.state.placeInfo.url}</Text>
+    </View>)
+      }
     </Callout>
     </Marker>
       )

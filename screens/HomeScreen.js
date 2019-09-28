@@ -156,6 +156,7 @@ export default class HomeScreen extends Component {
         id: event.placeId
       };
       this.setState({
+        travelTime: '',
         placeInfo,
         lat: event.coordinate.latitude,
         long: event.coordinate.longitude
@@ -177,23 +178,19 @@ export default class HomeScreen extends Component {
     let poiMarker = null;
     if (this.state.placeInfo.name) {
       poiMarker = (
-      <Marker pinColor='green' coordinate={this.state.placeInfo.coordinate} calloutOffset={{ x: -8, y: 28 }}
+      <Marker pinColor='green' 
+      coordinate={this.state.placeInfo.coordinate} 
+      calloutOffset={{ x: -8, y: 28 }}
       calloutAnchor={{ x: 0.5, y: 0.4 }}>
-      <Callout onPress={() => this.getRouteDirections(this.state.placeInfo.id)}>
-      {this.state.pointCoords.length < 1 ? 
-        (<View>
-          <Image style={{width: 50, height: 50}} source={{uri: this.state.placeInfo.icon}} />
-          <Text> Meet up at: {this.state.placeInfo.name}</Text>
-          <Text> Click on me to preview the route there</Text>
-          <Text>Rating: {this.state.placeInfo.rating}</Text> 
-      </View>)
-      :  (<View>
-        <Text> Approx transit time: {this.state.travelTime}</Text>
-        <Text> Navigate there: {this.state.placeInfo.url}</Text>
-    </View>)
-      }
-    </Callout>
-    </Marker>
+        <Callout onPress={() => this.getRouteDirections(this.state.placeInfo.id)}>
+          <View>
+            <Image style={{width: 50, height: 50}} source={{uri: this.state.placeInfo.icon}} />
+              <Text> Meet up at: {this.state.placeInfo.name}</Text>
+              <Text> Rating: {this.state.placeInfo.rating}</Text>
+              {this.state.travelTime.length > 1 ? <Text> Approx transit time: {this.state.travelTime}</Text> : <Text> Click on me to preview the route there</Text>}
+          </View>
+        </Callout>
+      </Marker>
       )
     } 
 

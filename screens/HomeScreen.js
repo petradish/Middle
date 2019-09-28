@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableHighlight, Keyboard } from 'react-native';
-import MapView, {Polyline, Marker} from 'react-native-maps';
+import { StyleSheet, View, Image, Text, TextInput, TouchableHighlight, Keyboard } from 'react-native';
+import MapView, {Polyline, Marker, Callout} from 'react-native-maps';
 // import MapViewDirections from 'react-native-maps-directions';
 import PolyLine from '@mapbox/polyline'
 import {apiKey} from '../secrets';
@@ -17,13 +17,18 @@ export default class HomeScreen extends Component {
       error: '',
       latitude: 40.6866676,
       longitude: -73.9836081,
+      lat: 40.6866676,
+      long: -73.9836081,
       friend: '',
-      friendCoords: {},
-      predictions: []
+      pointCoordsToFriend: [],
+      pointCoordsToMe: [],
+      predictions: [],
+      duration: '',
+      placeInfo: {}
     };
     this.onChangeDestinationDebounced = _.debounce(
       this.onChangeDestination, 1000
-    )
+    );
   }
   
   componentDidMount(){
@@ -31,42 +36,64 @@ export default class HomeScreen extends Component {
       position => {
         this.setState({
           latitude: position.coords.latitude,
-          longitude: position.coords.longitude
+          longitude: position.coords.longitude,
+          lat: position.coords.latitude,
+          long: position.coords.longitude,
         });
       },
       error => alert(`${error.message} You're now in Brooklyn, the best!`), {enableHighAccuracy: false, maximumAge: 1000, timeout: 20000}
     )
   }
+
+
+  calculateDuration(me, friend){
+    const secondsMe = me.routes[0].legs[0].duration.value
+    const secondsFriend = friend.routes[0].legs[0].duration.value
+    const bestTime = Math.floor(((secondsMe + secondsFriend) / 4)/60 )
+    if (bestTime === 0) return `This won't work. Your friend is unreachable!`
+    const bestCase = `The best case scenario would find a route of ${bestTime} minutes between us!`
+    const worstCase = `If it's taking you more than 60 minutes to reach each other, it's not worth it. Trust me.`
+    return bestTime < 60 ? bestCase : worstCase;
+  }
+
   async getTravelDuration(friendPlaceId, friendPlaceName) {
     try {
-      const response = await fetch(
-        `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${
+      
+      const routeUrlFriend = `https://maps.googleapis.com/maps/api/directions/json?&mode=transit&origin=${
+        this.state.latitude
+      },${
+        this.state.longitude
+      }&destination=place_id:${friendPlaceId}&departure_time=now&transit_mode=subway&key=${apiKey}`
+      console.log(routeUrlFriend)
+      const routeToFriend = await fetch(routeUrlFriend);
+      const friendRoute = await routeToFriend.json();
+      const points = PolyLine.decode(friendRoute.routes[0].overview_polyline.points);
+      const pointCoordsToFriend = points.map(point => {
+        return { latitude: point[0], longitude: point[1] };
+      });
+
+      const routeToMe = await fetch(
+        `https://maps.googleapis.com/maps/api/directions/json?&mode=transit&origin=place_id:${friendPlaceId}&destination=${
           this.state.latitude
         },${
           this.state.longitude
-        }|place_id:${friendPlaceId}&destinations=${
-          this.state.latitude
-        },${
-          this.state.longitude
-        }|place_id:${friendPlaceId}&mode=transit&transit_mode=subway&departure_time=now&key=${apiKey}`
+        }&departure_time=now&transit_mode=subway&key=${apiKey}`
       );
-      const json = await response.json();
-      // console.log(json);
-      const friendDetails = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?placeid=${friendPlaceId}&key=${apiKey}`);
-      const jsonFriend = await friendDetails.json()
-      // const points = PolyLine.decode(json.routes[0].overview_polyline.points);
-      const friendCoords = {latitude: jsonFriend.result.geometry.location.lat, longitude: jsonFriend.result.geometry.location.lng }
-      console.log(friendCoords)
+      const meRoute = await routeToMe.json();
+      const pointsToMe = PolyLine.decode(meRoute.routes[0].overview_polyline.points);
+      const pointCoordsToMe = pointsToMe.map(point => {
+        return { latitude: point[0], longitude: point[1] };
+      });
+      const duration = this.calculateDuration(friendRoute, meRoute)
       this.setState({
-        friendCoords,
+        pointCoordsToFriend,
+        pointCoordsToMe,
         predictions: [],
-        friend: friendPlaceName
+        friend: friendPlaceName,
+        duration
       });
       Keyboard.dismiss();
-      this.map.fitToCoordinates([{
-        latitude: this.state.latitude,
-        longitude: this.state.longitude
-      }, friendCoords], { edgePadding: edgePadding});
+      this.map.fitToCoordinates(pointCoordsToFriend, { edgePadding: edgePadding});
     } catch (error) {
       console.error(error);
     }
@@ -76,32 +103,67 @@ export default class HomeScreen extends Component {
     &input=${friend}&location=${this.state.latitude},${
       this.state.longitude
     }&radius=2000`;
-    console.log(apiUrl);
     try {
       const result = await fetch(apiUrl);
       const json = await result.json();
       this.setState({
         predictions: json.predictions
       });
-      console.log(json);
     } catch (err) {
       console.error(err);
     }
   }
+
+  async handlePoiClick(event){
+    const placeUrl = `https://maps.googleapis.com/maps/api/place/details/json?placeid=${event.placeId}&key=${apiKey}`
+    try {
+      const result = await fetch(placeUrl);
+      const json = await result.json();
+      
+      const placeInfo = {
+        name: event.name,
+        icon: json.result.icon,
+        price: json.result.price_level,
+        rating: json.result.rating,
+        url: json.result.url,
+        coordinate: event.coordinate
+      };
+      this.setState({
+        placeInfo,
+        lat: event.coordinate.latitude,
+        long: event.coordinate.longitude
+      })
+      console.log(this.state.placeInfo)
+    } catch(err) {
+      console.error(err)
+    }
+    
+  }
   render() {
-    // let originMarker = null;
-    // if (this.state.longitude){
-    //   originMarker = (
-    //     <Marker color='tomato' coordinate={{longitude: this.state.longitude, latitude: this.state.latitude}} />
-    //   )
     
     let marker = null;
-
-    if (this.state.friendCoords.latitude){
+    if (this.state.pointCoordsToFriend.length > 1){
       marker = (
-        <Marker color='tomato' coordinate={this.state.friendCoords} />
-      )}
-  
+        <Marker pinColor='plum' coordinate={this.state.pointCoordsToFriend[this.state.pointCoordsToFriend.length-1]} />
+      )
+    }
+    let poiMarker = null;
+    if (this.state.placeInfo.name) {
+      poiMarker = (
+      <Marker pinColor='green' coordinate={this.state.placeInfo.coordinate} calloutOffset={{ x: -8, y: 28 }}
+      calloutAnchor={{ x: 0.5, y: 0.4 }}>
+      <Callout>
+      <View>
+          <Image style={{width: 50, height: 50}} source={{uri: this.state.placeInfo.icon}} />
+          <Text> Meet up at: {this.state.placeInfo.name}</Text>
+          <Text> Navigate there: {this.state.placeInfo.url}</Text>
+          <Text>Rating: {this.state.placeInfo.rating}</Text> 
+      </View>
+    </Callout>
+    </Marker>
+      )
+    } 
+
       const predictions = this.state.predictions.map(prediction => (
       <TouchableHighlight
         onPress={() =>
@@ -128,20 +190,29 @@ export default class HomeScreen extends Component {
         style={styles.map}
         customMapStyle={mapStyle}
         region={{
-          latitude: this.state.latitude,
-          longitude: this.state.longitude,
+          latitude: this.state.lat,
+          longitude: this.state.long,
           latitudeDelta: 0.015,
           longitudeDelta: 0.0121
         }}
         showsUserLocation={true}
+        onPoiClick={e => this.handlePoiClick(e.nativeEvent)}
       >
-        {/* <Polyline
-          coordinates={this.state.friendCoords}
-          strokeWidth={4}
-          strokeColor="plum"
-        /> */}
-    <Marker color='tomato' title='Me' coordinate={{longitude: this.state.longitude, latitude: this.state.latitude}} /> 
+
+    <Marker pinColor='red' title='Me' coordinate={{longitude: this.state.longitude, latitude: this.state.latitude}} /> 
         {marker}
+        {poiMarker}
+        <Polyline
+          coordinates={this.state.pointCoordsToFriend}
+          strokeWidth={5}
+          strokeColor="plum"
+        />
+        <Polyline
+          coordinates={this.state.pointCoordsToMe}
+          strokeWidth={4}
+          strokeColor="tomato"
+        />
+        
       </MapView>
       <TextInput
         placeholder="A fair friend is no fair-weather friend...meet in the middle!"
@@ -155,6 +226,8 @@ export default class HomeScreen extends Component {
         }}
       />
       {predictions}
+      {this.state.duration !== '' ? <Text style={styles.suggestions}>{this.state.duration}</Text> : null}
+      
     </View>
   );
   }

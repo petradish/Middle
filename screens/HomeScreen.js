@@ -94,7 +94,6 @@ export default class HomeScreen extends Component {
       },${
         this.state.longitude
       }&destination=place_id:${friendPlaceId}&departure_time=now&transit_mode=subway&key=${apiKey}`
-      console.log(routeUrlFriend)
       const routeToFriend = await fetch(routeUrlFriend);
       const friendRoute = await routeToFriend.json();
       const points = PolyLine.decode(friendRoute.routes[0].overview_polyline.points);
@@ -149,7 +148,6 @@ export default class HomeScreen extends Component {
     try {
       const result = await fetch(placeUrl);
       const json = await result.json();
-      console.log(json)
       const placeInfo = {
         name: event.name,
         address: json.result.formatted_address,
@@ -166,7 +164,6 @@ export default class HomeScreen extends Component {
         lat: event.coordinate.latitude,
         long: event.coordinate.longitude
       })
-      console.log(this.state.placeInfo)
     } catch(err) {
       console.error(err)
     }
@@ -261,7 +258,6 @@ export default class HomeScreen extends Component {
         value={this.state.friend}
         clearButtonMode="always"
         onChangeText={friend => {
-          console.log(friend);
           this.setState({ friend });
           this.onChangeDestinationDebounced(friend);
         }}

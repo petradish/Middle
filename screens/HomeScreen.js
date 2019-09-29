@@ -1,11 +1,11 @@
 import React, {Component} from 'react';
-import { StyleSheet, View, Image, Text, TextInput, TouchableHighlight, Keyboard } from 'react-native';
+import { StyleSheet, View, Image, Text, TextInput, Button, TouchableHighlight, Keyboard } from 'react-native';
 import MapView, {Polyline, Marker, Callout} from 'react-native-maps';
 // import MapViewDirections from 'react-native-maps-directions';
 import PolyLine from '@mapbox/polyline'
 import {apiKey} from '../secrets';
 import _ from 'lodash'
-
+import openMap from 'react-native-open-maps';
 
 // const origin = {latitude: 40.7305, longitude: -73.9091};
 // const destination = {latitude: 40.705, longitude: -74.009};
@@ -47,6 +47,9 @@ export default class HomeScreen extends Component {
     )
   }
 
+  _navigate() {
+    openMap({ latitude: this.state.lat, longitude: this.state.long });
+  }
   async getRouteDirections(destinationPlaceId) {
     try {
       const response = await fetch(
@@ -182,7 +185,7 @@ export default class HomeScreen extends Component {
       coordinate={this.state.placeInfo.coordinate} 
       calloutOffset={{ x: -8, y: 28 }}
       calloutAnchor={{ x: 0.5, y: 0.4 }}>
-        <Callout onPress={() => this.getRouteDirections(this.state.placeInfo.id)}>
+        <Callout style={styles.calloutView} onPress={() => this.getRouteDirections(this.state.placeInfo.id)}>
           <View>
             <Image style={{width: 50, height: 50}} source={{uri: this.state.placeInfo.icon}} />
               <Text> Meet up at: {this.state.placeInfo.name}</Text>
@@ -262,7 +265,9 @@ export default class HomeScreen extends Component {
       />
       {predictions}
       {this.state.duration !== '' ? <Text style={styles.suggestions}>{this.state.duration}</Text> : null}
-      {this.state.travelTime.length > 1 ? <Text> Approx transit time: {this.state.travelTime}</Text> : null}
+      {this.state.travelTime.length > 1 ? 
+      <Button onPress={this._navigate} title="Click To Open Maps 🗺" > Approx transit time: {this.state.travelTime}</Button>
+       : null}
     </View>
   );
   }
@@ -584,5 +589,14 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     marginLeft: 5,
     marginRight: 5
-  }
+  },
+  calloutView: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderRadius: 10,
+    width: "40%",
+    marginLeft: "30%",
+    marginRight: "30%",
+    marginTop: 20
+  },
 });

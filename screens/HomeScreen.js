@@ -31,6 +31,7 @@ export default class HomeScreen extends Component {
     this.onChangeDestinationDebounced = _.debounce(
       this.onChangeDestination, 1000
     );
+    this._navigate = this._navigate.bind(this)
   }
   
   componentDidMount(){
@@ -48,7 +49,7 @@ export default class HomeScreen extends Component {
   }
 
   _navigate() {
-    openMap({ latitude: this.state.lat, longitude: this.state.long });
+    openMap({end: `${this.state.placeInfo.name} ${this.state.placeInfo.address}`, travelType: 'public_transit'});
   }
   async getRouteDirections(destinationPlaceId) {
     try {
@@ -148,9 +149,10 @@ export default class HomeScreen extends Component {
     try {
       const result = await fetch(placeUrl);
       const json = await result.json();
-      
+      console.log(json)
       const placeInfo = {
         name: event.name,
+        address: json.result.formatted_address,
         icon: json.result.icon,
         price: json.result.price_level,
         rating: json.result.rating,
@@ -187,11 +189,12 @@ export default class HomeScreen extends Component {
       calloutAnchor={{ x: 0.5, y: 0.4 }}>
         <Callout style={styles.calloutView} onPress={() => this.getRouteDirections(this.state.placeInfo.id)}>
           <View>
-            <Image style={{width: 50, height: 50}} source={{uri: this.state.placeInfo.icon}} />
+            {/* <Image style={{width: 50, height: 50}} source={{uri: this.state.placeInfo.icon}} /> */}
               <Text> Meet up at: {this.state.placeInfo.name}</Text>
-              <Text> Rating: {this.state.placeInfo.rating}</Text>
-              <Text> Click on me to preview the route there</Text>
+              <Text> Rating: {this.state.placeInfo.rating}/5 Price: {this.state.placeInfo.price}/4</Text>
+              <Text> Click to preview route </Text>
           </View>
+          
         </Callout>
       </Marker>
       )
@@ -238,7 +241,7 @@ export default class HomeScreen extends Component {
         
         <Polyline
           coordinates={this.state.pointCoordsToFriend}
-          strokeWidth={5}
+          strokeWidth={6}
           strokeColor="plum"
         />
         <Polyline
@@ -266,7 +269,10 @@ export default class HomeScreen extends Component {
       {predictions}
       {this.state.duration !== '' ? <Text style={styles.suggestions}>{this.state.duration}</Text> : null}
       {this.state.travelTime.length > 1 ? 
-      <Button onPress={this._navigate} title="Click To Open Maps 🗺" > Approx transit time: {this.state.travelTime}</Button>
+      <View>
+      <Button onPress={this._navigate} title="Click To Open Maps 🗺" />
+      <Text>Approx transit time: {this.state.travelTime}</Text>
+      </View>
        : null}
     </View>
   );
@@ -591,12 +597,9 @@ const styles = StyleSheet.create({
     marginRight: 5
   },
   calloutView: {
-    flexDirection: "row",
     backgroundColor: "rgba(255, 255, 255, 0.9)",
-    borderRadius: 10,
-    width: "40%",
-    marginLeft: "30%",
-    marginRight: "30%",
-    marginTop: 20
+    // width: "50%",
+    // marginLeft: "20%",
+    // marginRight: "20%",
   },
 });

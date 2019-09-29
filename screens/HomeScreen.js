@@ -1,29 +1,36 @@
 import React, {Component} from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableHighlight, Keyboard } from 'react-native';
-import MapView, {Polyline, Marker} from 'react-native-maps';
+import { StyleSheet, View, Image, Text, TextInput, Button, TouchableHighlight, Keyboard } from 'react-native';
+import MapView, {Polyline, Marker, Callout} from 'react-native-maps';
 // import MapViewDirections from 'react-native-maps-directions';
 import PolyLine from '@mapbox/polyline'
 import {apiKey} from '../secrets';
 import _ from 'lodash'
-
+import openMap from 'react-native-open-maps';
 
 // const origin = {latitude: 40.7305, longitude: -73.9091};
 // const destination = {latitude: 40.705, longitude: -74.009};
 
-export default class MapScreen extends Component {
+export default class HomeScreen extends Component {
   constructor(){
     super();
     this.state = {
       error: '',
       latitude: 40.6866676,
       longitude: -73.9836081,
-      destination: '',
+      lat: 40.6866676,
+      long: -73.9836081,
+      friend: '',
+      pointCoordsToFriend: [],
+      pointCoordsToMe: [],
       pointCoords: [],
-      predictions: []
+      travelTime: '',
+      predictions: [],
+      duration: '',
+      placeInfo: {}
     };
     this.onChangeDestinationDebounced = _.debounce(
       this.onChangeDestination, 1000
-    )
+    );
   }
   
   componentDidMount(){
@@ -31,13 +38,19 @@ export default class MapScreen extends Component {
       position => {
         this.setState({
           latitude: position.coords.latitude,
-          longitude: position.coords.longitude
+          longitude: position.coords.longitude,
+          lat: position.coords.latitude,
+          long: position.coords.longitude,
         });
       },
       error => alert(`${error.message} You're now in Brooklyn, the best!`), {enableHighAccuracy: false, maximumAge: 1000, timeout: 20000}
     )
   }
-  async getRouteDirections(destinationPlaceId, destinationName) {
+
+  _navigate() {
+    openMap({ latitude: this.state.lat, longitude: this.state.long });
+  }
+  async getRouteDirections(destinationPlaceId) {
     try {
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/directions/json?&mode=transit&origin=${
@@ -47,15 +60,14 @@ export default class MapScreen extends Component {
         }&destination=place_id:${destinationPlaceId}&departure_time=now&transit_mode=subway&key=${apiKey}`
       );
       const json = await response.json();
-      console.log(json);
+      const travelTime = json.routes[0].legs[0].duration.text
       const points = PolyLine.decode(json.routes[0].overview_polyline.points);
       const pointCoords = points.map(point => {
         return { latitude: point[0], longitude: point[1] };
       });
       this.setState({
-        pointCoords,
-        predictions: [],
-        destination: destinationName
+        travelTime,
+        pointCoords
       });
       Keyboard.dismiss();
       this.map.fitToCoordinates(pointCoords);
@@ -63,34 +75,132 @@ export default class MapScreen extends Component {
       console.error(error);
     }
   }
-  async onChangeDestination(destination) {
+  calculateDuration(me, friend){
+    const secondsMe = me.routes[0].legs[0].duration.value
+    const secondsFriend = friend.routes[0].legs[0].duration.value
+    const bestTime = Math.floor(((secondsMe + secondsFriend) / 4)/60 )
+    if (bestTime === 0) return `This won't work. Your friend is unreachable!`
+    const bestCase = `The best case scenario would find a route of ${bestTime} minutes between us!`
+    const worstCase = `If it's taking you more than 60 minutes to reach each other, it's not worth it. Trust me.`
+    return bestTime < 60 ? bestCase : worstCase;
+  }
+
+  async getTravelDuration(friendPlaceId, friendPlaceName) {
+    try {
+      
+      const routeUrlFriend = `https://maps.googleapis.com/maps/api/directions/json?&mode=transit&origin=${
+        this.state.latitude
+      },${
+        this.state.longitude
+      }&destination=place_id:${friendPlaceId}&departure_time=now&transit_mode=subway&key=${apiKey}`
+      console.log(routeUrlFriend)
+      const routeToFriend = await fetch(routeUrlFriend);
+      const friendRoute = await routeToFriend.json();
+      const points = PolyLine.decode(friendRoute.routes[0].overview_polyline.points);
+      const pointCoordsToFriend = points.map(point => {
+        return { latitude: point[0], longitude: point[1] };
+      });
+
+      const routeToMe = await fetch(
+        `https://maps.googleapis.com/maps/api/directions/json?&mode=transit&origin=place_id:${friendPlaceId}&destination=${
+          this.state.latitude
+        },${
+          this.state.longitude
+        }&departure_time=now&transit_mode=subway&key=${apiKey}`
+      );
+      const meRoute = await routeToMe.json();
+      const pointsToMe = PolyLine.decode(meRoute.routes[0].overview_polyline.points);
+      const pointCoordsToMe = pointsToMe.map(point => {
+        return { latitude: point[0], longitude: point[1] };
+      });
+      const duration = this.calculateDuration(friendRoute, meRoute)
+      this.setState({
+        pointCoordsToFriend,
+        pointCoordsToMe,
+        predictions: [],
+        friend: friendPlaceName,
+        duration
+      });
+      Keyboard.dismiss();
+      this.map.fitToCoordinates(pointCoordsToFriend, { edgePadding: edgePadding});
+    } catch (error) {
+      console.error(error);
+    }
+  }
+  async onChangeDestination(friend) {
     const apiUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?key=${apiKey}
-    &input=${destination}&location=${this.state.latitude},${
+    &input=${friend}&location=${this.state.latitude},${
       this.state.longitude
     }&radius=2000`;
-    console.log(apiUrl);
     try {
       const result = await fetch(apiUrl);
       const json = await result.json();
       this.setState({
         predictions: json.predictions
       });
-      console.log(json);
     } catch (err) {
       console.error(err);
     }
   }
+
+  async handlePoiClick(event){
+    const placeUrl = `https://maps.googleapis.com/maps/api/place/details/json?placeid=${event.placeId}&key=${apiKey}`
+    try {
+      const result = await fetch(placeUrl);
+      const json = await result.json();
+      
+      const placeInfo = {
+        name: event.name,
+        icon: json.result.icon,
+        price: json.result.price_level,
+        rating: json.result.rating,
+        url: json.result.url,
+        coordinate: event.coordinate,
+        id: event.placeId
+      };
+      this.setState({
+        travelTime: '',
+        placeInfo,
+        lat: event.coordinate.latitude,
+        long: event.coordinate.longitude
+      })
+      console.log(this.state.placeInfo)
+    } catch(err) {
+      console.error(err)
+    }
+    
+  }
   render() {
+    
     let marker = null;
-    if (this.state.pointCoords.length > 1){
+    if (this.state.pointCoordsToFriend.length > 1){
       marker = (
-        <Marker color='tomato' coordinate={this.state.pointCoords[this.state.pointCoords.length-1]} />
+        <Marker pinColor='plum' coordinate={this.state.pointCoordsToFriend[this.state.pointCoordsToFriend.length-1]} />
       )
     }
-    const predictions = this.state.predictions.map(prediction => (
+    let poiMarker = null;
+    if (this.state.placeInfo.name) {
+      poiMarker = (
+      <Marker pinColor='green' 
+      coordinate={this.state.placeInfo.coordinate} 
+      calloutOffset={{ x: -8, y: 28 }}
+      calloutAnchor={{ x: 0.5, y: 0.4 }}>
+        <Callout style={styles.calloutView} onPress={() => this.getRouteDirections(this.state.placeInfo.id)}>
+          <View>
+            <Image style={{width: 50, height: 50}} source={{uri: this.state.placeInfo.icon}} />
+              <Text> Meet up at: {this.state.placeInfo.name}</Text>
+              <Text> Rating: {this.state.placeInfo.rating}</Text>
+              <Text> Click on me to preview the route there</Text>
+          </View>
+        </Callout>
+      </Marker>
+      )
+    } 
+
+      const predictions = this.state.predictions.map(prediction => (
       <TouchableHighlight
         onPress={() =>
-          this.getRouteDirections(
+          this.getTravelDuration(
             prediction.place_id,
             prediction.structured_formatting.main_text
           )
@@ -113,38 +223,57 @@ export default class MapScreen extends Component {
         style={styles.map}
         customMapStyle={mapStyle}
         region={{
-          latitude: this.state.latitude,
-          longitude: this.state.longitude,
+          latitude: this.state.lat,
+          longitude: this.state.long,
           latitudeDelta: 0.015,
           longitudeDelta: 0.0121
         }}
         showsUserLocation={true}
+        onPoiClick={e => this.handlePoiClick(e.nativeEvent)}
       >
+
+    <Marker pinColor='red' title='Me' coordinate={{longitude: this.state.longitude, latitude: this.state.latitude}} /> 
+        {marker}
+        {poiMarker}
+        
+        <Polyline
+          coordinates={this.state.pointCoordsToFriend}
+          strokeWidth={5}
+          strokeColor="plum"
+        />
+        <Polyline
+          coordinates={this.state.pointCoordsToMe}
+          strokeWidth={4}
+          strokeColor="tomato"
+        />
         <Polyline
           coordinates={this.state.pointCoords}
           strokeWidth={4}
-          strokeColor="plum"
+          strokeColor="green"
         />
-        {marker}
       </MapView>
       <TextInput
         placeholder="A fair friend is no fair-weather friend...meet in the middle!"
         style={styles.destinationInput}
-        value={this.state.destination}
+        value={this.state.friend}
         clearButtonMode="always"
-        onChangeText={destination => {
-          console.log(destination);
-          this.setState({ destination });
-          this.onChangeDestinationDebounced(destination);
+        onChangeText={friend => {
+          console.log(friend);
+          this.setState({ friend });
+          this.onChangeDestinationDebounced(friend);
         }}
       />
       {predictions}
+      {this.state.duration !== '' ? <Text style={styles.suggestions}>{this.state.duration}</Text> : null}
+      {this.state.travelTime.length > 1 ? 
+      <Button onPress={this._navigate} title="Click To Open Maps 🗺" > Approx transit time: {this.state.travelTime}</Button>
+       : null}
     </View>
   );
   }
 }
 
-MapScreen.navigationOptions = {
+HomeScreen.navigationOptions = {
   title: `You are here! Where's your buddy?`,
 };
 
@@ -431,6 +560,12 @@ const mapStyle = [
     ]
   }
 ]
+const edgePadding = {
+  top: 50,
+  right: 50,
+  bottom: 50,
+  left: 50
+}
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject
@@ -454,5 +589,14 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     marginLeft: 5,
     marginRight: 5
-  }
+  },
+  calloutView: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderRadius: 10,
+    width: "40%",
+    marginLeft: "30%",
+    marginRight: "30%",
+    marginTop: 20
+  },
 });

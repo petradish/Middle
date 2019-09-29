@@ -57,7 +57,7 @@ const DirectionStack = createStackNavigator(
 DirectionStack.navigationOptions = {
   tabBarLabel: 'Me -> Meet -> ETA',
   tabBarIcon: ({ focused }) => (
-    <TabBarIcon focused={focused} name='clockcircleo' />
+    <TabBarIcon focused={focused} name='clockcircleo'/>
   ),
 };
 

@@ -31,7 +31,6 @@ export default class HomeScreen extends Component {
     this.onChangeDestinationDebounced = _.debounce(
       this.onChangeDestination, 1000
     );
-    this._navigate = this._navigate.bind(this)
   }
   
   componentDidMount(){
@@ -44,12 +43,28 @@ export default class HomeScreen extends Component {
           long: position.coords.longitude,
         });
       },
-      error => alert(`${error.message} You're now in Brooklyn, the best!`), {enableHighAccuracy: false, maximumAge: 1000, timeout: 20000}
+      error => {
+        alert(`${error.message} Location Services disabled. Please enter your address below.`);
+      //   render() {<View>
+      //     <TextInput
+      //   placeholder="Enter your origin location"
+      //   style={styles.destinationInput}
+      //   value={this.state.friend}
+      //   clearButtonMode="always"
+      //   onChangeText={origin => {
+      //     this.setState({ 
+      //       latitude: origin.
+      //      });
+      //     this.onChangeDestinationDebounced(friend);
+      //   }}
+      // />
+      //   </View>}
+      }, {enableHighAccuracy: false, maximumAge: 1000, timeout: 20000}
     )
   }
 
   _navigate() {
-    openMap({end: `${this.state.placeInfo.name} ${this.state.placeInfo.address}`, travelType: 'public_transit'});
+    openMap({ latitude: this.state.lat, longitude: this.state.long });
   }
   async getRouteDirections(destinationPlaceId) {
     try {
@@ -88,12 +103,12 @@ export default class HomeScreen extends Component {
 
   async getTravelDuration(friendPlaceId, friendPlaceName) {
     try {
-      
       const routeUrlFriend = `https://maps.googleapis.com/maps/api/directions/json?&mode=transit&origin=${
         this.state.latitude
       },${
         this.state.longitude
       }&destination=place_id:${friendPlaceId}&departure_time=now&transit_mode=subway&key=${apiKey}`
+      console.log(routeUrlFriend)
       const routeToFriend = await fetch(routeUrlFriend);
       const friendRoute = await routeToFriend.json();
       const points = PolyLine.decode(friendRoute.routes[0].overview_polyline.points);
@@ -113,6 +128,8 @@ export default class HomeScreen extends Component {
       const pointCoordsToMe = pointsToMe.map(point => {
         return { latitude: point[0], longitude: point[1] };
       });
+      console.log('MeCoords', pointCoordsToMe.length)
+      console.log('FriendCoords', pointCoordsToFriend.length)
       const duration = this.calculateDuration(friendRoute, meRoute)
       this.setState({
         pointCoordsToFriend,
@@ -148,9 +165,9 @@ export default class HomeScreen extends Component {
     try {
       const result = await fetch(placeUrl);
       const json = await result.json();
+      
       const placeInfo = {
         name: event.name,
-        address: json.result.formatted_address,
         icon: json.result.icon,
         price: json.result.price_level,
         rating: json.result.rating,
@@ -164,6 +181,7 @@ export default class HomeScreen extends Component {
         lat: event.coordinate.latitude,
         long: event.coordinate.longitude
       })
+      console.log(this.state.placeInfo)
     } catch(err) {
       console.error(err)
     }
@@ -186,12 +204,11 @@ export default class HomeScreen extends Component {
       calloutAnchor={{ x: 0.5, y: 0.4 }}>
         <Callout style={styles.calloutView} onPress={() => this.getRouteDirections(this.state.placeInfo.id)}>
           <View>
-            {/* <Image style={{width: 50, height: 50}} source={{uri: this.state.placeInfo.icon}} /> */}
+            <Image style={{width: 50, height: 50}} source={{uri: this.state.placeInfo.icon}} />
               <Text> Meet up at: {this.state.placeInfo.name}</Text>
-              <Text> Rating: {this.state.placeInfo.rating}/5 Price: {this.state.placeInfo.price}/4</Text>
-              <Text> Click to preview route </Text>
+              <Text> Rating: {this.state.placeInfo.rating}</Text>
+              <Text> Click on me to preview the route there</Text>
           </View>
-          
         </Callout>
       </Marker>
       )
@@ -238,7 +255,7 @@ export default class HomeScreen extends Component {
         
         <Polyline
           coordinates={this.state.pointCoordsToFriend}
-          strokeWidth={6}
+          strokeWidth={5}
           strokeColor="plum"
         />
         <Polyline
@@ -258,6 +275,7 @@ export default class HomeScreen extends Component {
         value={this.state.friend}
         clearButtonMode="always"
         onChangeText={friend => {
+          console.log(friend);
           this.setState({ friend });
           this.onChangeDestinationDebounced(friend);
         }}
@@ -265,10 +283,7 @@ export default class HomeScreen extends Component {
       {predictions}
       {this.state.duration !== '' ? <Text style={styles.suggestions}>{this.state.duration}</Text> : null}
       {this.state.travelTime.length > 1 ? 
-      <View>
-      <Button onPress={this._navigate} title="Click To Open Maps 🗺" />
-      <Text>Approx transit time: {this.state.travelTime}</Text>
-      </View>
+      <Button onPress={this._navigate} title="Click To Open Maps 🗺" > Approx transit time: {this.state.travelTime}</Button>
        : null}
     </View>
   );
@@ -593,9 +608,12 @@ const styles = StyleSheet.create({
     marginRight: 5
   },
   calloutView: {
+    flexDirection: "row",
     backgroundColor: "rgba(255, 255, 255, 0.9)",
-    // width: "50%",
-    // marginLeft: "20%",
-    // marginRight: "20%",
+    borderRadius: 10,
+    width: "40%",
+    marginLeft: "30%",
+    marginRight: "30%",
+    marginTop: 20
   },
 });

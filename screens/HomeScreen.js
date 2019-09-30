@@ -88,12 +88,12 @@ export default class HomeScreen extends Component {
 
   async getTravelDuration(friendPlaceId, friendPlaceName) {
     try {
-      
       const routeUrlFriend = `https://maps.googleapis.com/maps/api/directions/json?&mode=transit&origin=${
         this.state.latitude
       },${
         this.state.longitude
       }&destination=place_id:${friendPlaceId}&departure_time=now&transit_mode=subway&key=${apiKey}`
+      console.log(routeUrlFriend)
       const routeToFriend = await fetch(routeUrlFriend);
       const friendRoute = await routeToFriend.json();
       const points = PolyLine.decode(friendRoute.routes[0].overview_polyline.points);
@@ -113,6 +113,8 @@ export default class HomeScreen extends Component {
       const pointCoordsToMe = pointsToMe.map(point => {
         return { latitude: point[0], longitude: point[1] };
       });
+      console.log('MeCoords', pointCoordsToMe.length)
+      console.log('FriendCoords', pointCoordsToFriend)
       const duration = this.calculateDuration(friendRoute, meRoute)
       this.setState({
         pointCoordsToFriend,
@@ -148,11 +150,12 @@ export default class HomeScreen extends Component {
     try {
       const result = await fetch(placeUrl);
       const json = await result.json();
+      
       const placeInfo = {
         name: event.name,
-        address: json.result.formatted_address,
         icon: json.result.icon,
         price: json.result.price_level,
+        address: json.result.formatted_address,
         rating: json.result.rating,
         url: json.result.url,
         coordinate: event.coordinate,
@@ -164,6 +167,7 @@ export default class HomeScreen extends Component {
         lat: event.coordinate.latitude,
         long: event.coordinate.longitude
       })
+      console.log(this.state.placeInfo)
     } catch(err) {
       console.error(err)
     }
@@ -187,11 +191,10 @@ export default class HomeScreen extends Component {
         <Callout style={styles.calloutView} onPress={() => this.getRouteDirections(this.state.placeInfo.id)}>
           <View>
             {/* <Image style={{width: 50, height: 50}} source={{uri: this.state.placeInfo.icon}} /> */}
-              <Text> Meet up at: {this.state.placeInfo.name}</Text>
-              <Text> Rating: {this.state.placeInfo.rating}/5 Price: {this.state.placeInfo.price}/4</Text>
-              <Text> Click to preview route </Text>
+              <Text style={styles.textCallout}> Meet up at: {this.state.placeInfo.name}</Text>
+              <Text style={styles.textCallout}> Rating: {this.state.placeInfo.rating}/5 ✧ Price: {this.state.placeInfo.price}/4</Text>
+              <Text style={styles.textCallout}> Click to preview route </Text>
           </View>
-          
         </Callout>
       </Marker>
       )
@@ -238,7 +241,7 @@ export default class HomeScreen extends Component {
         
         <Polyline
           coordinates={this.state.pointCoordsToFriend}
-          strokeWidth={6}
+          strokeWidth={5}
           strokeColor="plum"
         />
         <Polyline
@@ -252,24 +255,24 @@ export default class HomeScreen extends Component {
           strokeColor="green"
         />
       </MapView>
+      {this.state.duration !== '' ? <Text style={styles.textPlum}>{this.state.duration}</Text> : null}
       <TextInput
-        placeholder="A fair friend is no fair-weather friend...meet in the middle!"
+        placeholder="A fair friend is no fair-weather friend..."
         style={styles.destinationInput}
         value={this.state.friend}
         clearButtonMode="always"
         onChangeText={friend => {
+          console.log(friend);
           this.setState({ friend });
           this.onChangeDestinationDebounced(friend);
         }}
       />
       {predictions}
-      {this.state.duration !== '' ? <Text style={styles.suggestions}>{this.state.duration}</Text> : null}
       {this.state.travelTime.length > 1 ? 
-      <View>
-      <Button onPress={this._navigate} title="Click To Open Maps 🗺" />
-      <Text>Approx transit time: {this.state.travelTime}</Text>
-      </View>
-       : null}
+            <View>
+            <Button onPress={this._navigate} title="Click To Open Maps 🗺" />
+            <Text style={styles.text}>Approx transit time: {this.state.travelTime}</Text>
+            </View> : null}
     </View>
   );
   }
@@ -578,24 +581,41 @@ const styles = StyleSheet.create({
   destinationInput: {
     height: 40,
     borderWidth: 0.5,
-    marginTop: 50,
+    marginTop: 5,
     marginLeft: 5,
     marginRight: 5,
     padding: 5,
-    backgroundColor: "white"
+    backgroundColor: "rgba(255, 255, 255, 0.8)"
   },
   suggestions: {
     backgroundColor: "white",
     padding: 5,
-    fontSize: 18,
+    fontSize: 16,
     borderWidth: 0.5,
     marginLeft: 5,
     marginRight: 5
   },
   calloutView: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    // width: "50%",
-    // marginLeft: "20%",
-    // marginRight: "20%",
+    backgroundColor: "white",
+    padding: 5,
   },
+  text: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "tomato",
+    marginLeft: 5
+  },
+  textCallout: {
+    fontSize: 14,
+    color: "#1AAC29",
+    marginLeft: 5
+  },
+  textPlum: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#ff77ff",
+    padding: 5,
+    textAlign: "center",
+    backgroundColor: "rgba(229, 229, 229, 0.4)"
+  }
 });

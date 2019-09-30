@@ -20,53 +20,53 @@ const HomeStack = createStackNavigator(
 );
 
 HomeStack.navigationOptions = {
-  tabBarLabel: 'Me',
+  tabBarLabel: 'Meet',
   tabBarIcon: ({ focused }) => (
     <TabBarIcon
       focused={focused}
-      name='user'
+      name='team'
     />
   ),
 };
 
 HomeStack.path = '';
 
-const MapStack = createStackNavigator(
-  {
-    Map: MapScreen,
-  },
-  config
-);
+// const MapStack = createStackNavigator(
+//   {
+//     Map: MapScreen,
+//   },
+//   config
+// );
 
-MapStack.navigationOptions = {
-  tabBarLabel: 'Meet',
-  tabBarIcon: ({ focused }) => (
-    <TabBarIcon focused={focused} name='team' />
-  ),
-};
+// MapStack.navigationOptions = {
+//   tabBarLabel: 'Meet',
+//   tabBarIcon: ({ focused }) => (
+//     <TabBarIcon focused={focused} name='team' />
+//   ),
+// };
 
-MapStack.path = '';
+// MapStack.path = '';
 
-const DirectionStack = createStackNavigator(
-  {
-    Directions: DirectionScreen,
-  },
-  config
-);
+// const DirectionStack = createStackNavigator(
+//   {
+//     Directions: DirectionScreen,
+//   },
+//   config
+// );
 
-DirectionStack.navigationOptions = {
-  tabBarLabel: 'Me -> Meet -> ETA',
-  tabBarIcon: ({ focused }) => (
-    <TabBarIcon focused={focused} name='clockcircleo'/>
-  ),
-};
+// DirectionStack.navigationOptions = {
+//   tabBarLabel: 'Me -> Meet -> ETA',
+//   tabBarIcon: ({ focused }) => (
+//     <TabBarIcon focused={focused} name='clockcircleo'/>
+//   ),
+// };
 
-DirectionStack.path = '';
+// DirectionStack.path = '';
 
 const tabNavigator = createBottomTabNavigator({
   HomeStack,
-  MapStack,
-  DirectionStack,
+  // MapStack,
+  // DirectionStack,
 });
 
 tabNavigator.path = '';
